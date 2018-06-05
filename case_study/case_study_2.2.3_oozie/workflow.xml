@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow-app xmlns="uri:oozie:workflow:0.2" name="cdw_sapp_2.2.3">
+	<start to="sqoop-node-branch"/>
+	<action name="sqoop-node-branch"> <!--node name-->
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker> <!--job tracking node is http://sandbox.hortonworks.com:8050 which is define in job properties-->
+			<name-node>${nameNode}</name-node> <!--name node is http://sandbox.hortonworks.com:8020 which is defined in job properties-->
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/branch"/>
+				<delete path="${nameNode}/user/maria_dev/cdw_sapp/branch"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<arg>import</arg>
+			<arg>--connect</arg>
+			<arg>jdbc:mysql://localhost/CDW_SAPP</arg>
+			<arg>--driver</arg>
+			<arg>com.mysql.jdbc.Driver</arg>
+			<arg>--query</arg>
+			<arg>SELECT BRANCH_CODE, BRANCH_NAME, BRANCH_STREET, BRANCH_CITY, BRANCH_STATE, BRANCH_ZIP, CONCAT('(',SUBSTRING(BRANCH_PHONE, 1, 3),')',SUBSTRING(BRANCH_PHONE, 4, 3),'-',SUBSTRING(BRANCH_PHONE, 7, 4) ) AS FORMATTED_PHONE, LAST_UPDATED FROM CDW_SAPP_BRANCH WHERE $CONDITIONS</arg>
+			<arg>-m</arg>
+			<arg>1</arg>
+			<arg>--target-dir</arg>
+			<arg>/Credit_Card_System/branch</arg>
+		</sqoop>
+		<ok to="sqoop-node-customer"/>
+		<error to="fail"/>
+	</action>
+	<action name="sqoop-node-customer"> <!--node name-->
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker> <!--job tracking node is http://sandbox.hortonworks.com:8050 which is define in job properties-->
+			<name-node>${nameNode}</name-node> <!--name node is http://sandbox.hortonworks.com:8020 which is defined in job properties-->
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/customer"/>
+				<delete path="${nameNode}/user/maria_dev/cdw_sapp/customer"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<arg>import</arg>
+			<arg>--connect</arg>
+			<arg>jdbc:mysql://localhost/CDW_SAPP</arg>
+			<arg>--driver</arg>
+			<arg>com.mysql.jdbc.Driver</arg>
+			<arg>--query</arg>
+			<arg>SELECT SSN, FIRST_NAME, lower(MIDDLE_NAME), LAST_NAME, CREDIT_CARD_NO, CONCAT(APT_NO,' ',STREET_NAME), CUST_CITY, CUST_STATE, CUST_COUNTRY, CUST_ZIP, CONCAT(SUBSTRING(CUST_PHONE, 1, 3),'-',SUBSTRING(CUST_PHONE, 4, 4) ) as FORMATTED_PHONE, CUST_EMAIL, LAST_UPDATED FROM CDW_SAPP_CUSTOMER WHERE $CONDITIONS</arg>
+			<arg>-m</arg>
+			<arg>1</arg>
+			<arg>--target-dir</arg>
+			<arg>/Credit_Card_System/customer</arg>
+		</sqoop>
+		<ok to="sqoop-node-credit-card"/> <!-- if everything is ok then go to credit-card node -->
+		<error to="fail"/>
+	</action>
+	<action name="sqoop-node-credit-card"> <!--node name-->
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker> <!--job tracking node is http://sandbox.hortonworks.com:8050 which is define in job properties-->
+			<name-node>${nameNode}</name-node> <!--name node is http://sandbox.hortonworks.com:8020 which is defined in job properties-->
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/credit_card"/>
+				<delete path="${nameNode}/user/maria_dev/cdw_sapp/credit_card"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<arg>import</arg>
+			<arg>--connect</arg>
+			<arg>jdbc:mysql://localhost/CDW_SAPP</arg>
+			<arg>--driver</arg>
+			<arg>com.mysql.jdbc.Driver</arg>
+			<arg>--query</arg>
+			<arg>SELECT TRANSACTION_ID, CREDIT_CARD_NO, DATE_FORMAT(CONCAT(CAST(YEAR AS CHAR(4)),'-',CAST(MONTH AS CHAR(2)),'-',CAST(DAY AS CHAR(2))),'%Y%m%d') AS TIMEID, CUST_SSN, BRANCH_CODE, TRANSACTION_TYPE, TRANSACTION_VALUE FROM CDW_SAPP_CREDITCARD WHERE $CONDITIONS</arg>
+			<arg>-m</arg>
+			<arg>1</arg>
+			<arg>--target-dir</arg>
+			<arg>/Credit_Card_System/credit_card</arg>
+		</sqoop>
+		<ok to="sqoop-node-time"/> <!-- if everything is ok then go to hive node -->
+		<error to="fail"/>
+	</action>
+	<action name="sqoop-node-time"> <!--node name-->
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker> <!--job tracking node is http://sandbox.hortonworks.com:8050 which is define in job properties-->
+			<name-node>${nameNode}</name-node> <!--name node is http://sandbox.hortonworks.com:8020 which is defined in job properties-->
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/time"/>
+				<delete path="${nameNode}/user/maria_dev/cdw_sapp/time"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+			<arg>import</arg>
+			<arg>--connect</arg>
+			<arg>jdbc:mysql://localhost/CDW_SAPP</arg>
+			<arg>--driver</arg>
+			<arg>com.mysql.jdbc.Driver</arg>
+			<arg>--query</arg>
+			<arg>SELECT DISTINCT DATE_FORMAT(CONCAT(CAST(YEAR AS CHAR(4)),'-',CAST(MONTH AS CHAR(2)),'-',CAST(DAY AS CHAR(2))),'%Y%m%d') AS TIMEID, DAY, MONTH, CASE MONTH WHEN 1 THEN 1 WHEN 2 THEN 1 WHEN 3 THEN 1 WHEN 4 THEN 2 WHEN 5 THEN 2 WHEN 6 THEN 2 WHEN 7 THEN 3 WHEN 8 THEN 3 WHEN 9 THEN 3 ELSE 4 END AS QUARTER, YEAR FROM CDW_SAPP_CREDITCARD WHERE $CONDITIONS ORDER BY 1</arg>
+			<arg>-m</arg>
+			<arg>1</arg>
+			<arg>--target-dir</arg>
+			<arg>/Credit_Card_System/time</arg>
+		</sqoop>
+		<ok to="Create_External_Table"/> <!-- if everything is ok then go to hive node -->
+		<error to="fail"/>
+	</action>
+	<action name = "Create_External_Table">
+		<hive xmlns = "uri:oozie:hive-action:0.4">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<script>${nameNode}/user/maria_dev/cdw_sapp/oozie/external.hive</script>
+		</hive>
+		<ok to = "Load_Data" />
+		<error to = "fail" />
+	</action>
+	<action name = "Load_Data">
+		<hive xmlns = "uri:oozie:hive-action:0.4">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<script>${nameNode}/user/maria_dev/cdw_sapp/oozie/loaddata.hive</script>
+		</hive>
+		<ok to = "end" />
+		<error to = "fail" />
+	</action>
+	<kill name="fail">
+		<message>Sqoop failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+	</kill>
+	<end name="end"/>
+</workflow-app>

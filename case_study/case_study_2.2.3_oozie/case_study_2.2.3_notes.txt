@@ -1,0 +1,51 @@
+2.2.3 Automating the Process with Oozie
+Credit Card System Req-2.2.3 Automating the Process with Oozie
+Functional Requirements
+1) Create an Oozie Workflow that will automate the processes of steps 2.2.1 and 2.2.2.
+* Each of the files in step 2.2.1 should be deleted before the workflow is executed in order to prevent storage of redundant data
+* The tables created in step 2.2.2 should be dropped before executing the hive workflow in order to prevent redundancy.
+2) Incorporate that workflow into an Oozie Coordinator
+that will execute with the following conditions:
+* Every weekday between 08:00 and 18:00 EST
+* Executes once every 20 minutes
+* Starts on April 2nd 2018 at 08:00 EST Ends on March 29th 2025 at 18:00 EST
+
+use winscp to upload files from windows machine to centos vm
+
+hive> create database cdw_sapp;
+
+[root@sandbox ~]# hadoop fs -put -f /root/Documents/case_study/oozie/*.* /user/maria_dev/cdw_sapp/oozie
+[root@sandbox ~]# oozie job -oozie http://localhost:11000/oozie -config /root/Documents/case_study/oozie/job.properties -run
+[root@sandbox ~]# oozie job -oozie http://localhost:11000/oozie -config /root/Documents/case_study/oozie/job_coordinator.properties -run
+
+how to debug:
+oozie job -info 0000010-180601181916954-oozie-oozi-W
+mapred job -list-attempt-ids job_1527877243642_0018 MAP completed
+mapred job -logs job_1527877243642_0018 attempt_1527877243642_0018_m_000000_0
+
+https://community.hortonworks.com/questions/35729/sqoop-free-from-query-with-oozie-not-working.html
+
+http://grokbase.com/t/cloudera/cdh-user/128azsv578/e0701-xml-schema-error-content-is-not-allowed-in-prolog
+
+oozie validate hdfs://sandbox.hortonworks.com:8020/user/maria_dev/cdw_sapp/oozie/workflow.xml
+oozie validate hdfs://sandbox.hortonworks.com:8020/user/maria_dev/cdw_sapp/oozie/coordinator.xml
+
+https://stackoverflow.com/questions/30631346/how-to-stop-an-oozie-coordinator
+oozie jobs -jobtype coordinator -filter status=RUNNING
+
+Then you can suspend the coordinator
+
+oozie job -suspend `<coord_id>`
+And resume it.
+
+oozie job -resume <coord_id>
+But often you have to kill it
+
+oozie job -kill <coord_id>
+and redeploy it...
+
+oozie job -kill 0000038-180601181916954-oozie-oozi-C
+
+change localtime from Haseeb:
+mv /etc/localtime /etc/localtime.bak
+464  ln -s /usr/share/zoneinfo/America/New_York /etc/localtime

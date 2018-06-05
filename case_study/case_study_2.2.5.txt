@@ -1,0 +1,79 @@
+2.2.5 Data Visualization
+2.2.5 Visualization of Dataset
+Credit Card System Req-2.2.5 Data exploration and visualization
+Functional Requirements
+Use Hive Query and Hive Visualization tool.
+1) Find the top 20 zip codes(hint: branch_zip) by total transaction value
+2) Find total transaction value for each transaction type by Quarter in 2018
+Hint: Find quarter from 'creditcard' table using month or use 'time' table if you already added transaction_id column there.
+
+(1)
+select b.branch_zip, sum(cc.transaction_value) as total
+from cdw_sapp_d_credit_card cc
+join cdw_sapp_d_branch b
+on cc.branch_code = b.branch_code
+group by b.branch_zip
+order by total desc
+limit 20
+
+2155    23792.89
+52722   23641.99
+11756   23507.66
+60091   23350.68
+33904   22991.33
+30236   22895.51
+71730   22772.8
+11803   22766.42
+7501    22727.54
+27834   22675.21
+91010   22583.27
+38655   22500.28
+29550   22438.22
+48047   22401.72
+53151   22384.68
+27284   22377.31
+15317   22365.06
+49418   22357.39
+98444   22356.68
+32703   22247.96
+Time taken: 197.711 seconds, Fetched: 20 row(s)
+
+(2)
+select t.quarter, cc.transaction_type, sum(cc.transaction_value) as total
+from cdw_sapp_d_credit_card cc
+join cdw_sapp_d_time t
+on cc.timeid = t.timeid
+where t.year = 2018
+group by t.quarter, cc.transaction_type
+order by t.quarter, cc.transaction_type;
+
+1       Bills   87258.77
+1       Education       81988.72
+1       Entertainment   86465.9
+1       Gas     88131.83
+1       Grocery 83458.26
+1       Healthcare      83592.61
+1       Test    83248.04
+2       Bills   86596.04
+2       Education       81663.14
+2       Entertainment   85418.93
+2       Gas     82395.39
+2       Grocery 85753.15
+2       Healthcare      85567.59
+2       Test    83588.01
+3       Bills   89345.97
+3       Education       88787.99
+3       Entertainment   83102.35
+3       Gas     80599.88
+3       Grocery 83751.94
+3       Healthcare      83037.53
+3       Test    85096.54
+4       Bills   88204.5
+4       Education       85540.22
+4       Entertainment   83962.92
+4       Gas     84932.16
+4       Grocery 84088.28
+4       Healthcare      88280.47
+4       Test    89377.78
+Time taken: 25.118 seconds, Fetched: 28 row(s)
+
