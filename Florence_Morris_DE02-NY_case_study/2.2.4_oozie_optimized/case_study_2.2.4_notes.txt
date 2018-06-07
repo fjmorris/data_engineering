@@ -1,0 +1,59 @@
+2.2.4 Process Optimization Module
+2.2.4 Optimizing the Process
+Credit Card System Req-2.2.4 Optimizing the Process
+Functional Requirements
+1) Create a new Oozie workflow similar to the process of
+2.2.3. This time, however, Sqoop should only import new data. Hive should then import only that new data. Original data should not be deleted in this process.
+2) Modify the Oozie Coordinator to use this workflow rather than the original, unoptimized, workflow.
+
+how to debug oozie:
+oozie job -info 0000044-180601181916954-oozie-oozi-W
+mapred job -list-attempt-ids job_1527877243642_0294 MAP completed
+mapred job -logs job_1527877243642_0294 attempt_1527877243642_0294_m_000000_0 | less
+
+****
+in shell, run commands in sqoop_create_jobs.sh
+in hive, run commands in external.hive
+[root@sandbox ~]# mkdir /root/Documents/case_study/oozie224
+in winscp, copy files to oozie224 directory
+
+[root@sandbox ~]# hadoop fs -mkdir /Credit_Card_System_224/oozie
+[root@sandbox ~]# hadoop fs -put -f /root/Documents/case_study/oozie224/*.* /Credit_Card_System_224/oozie
+
+hadoop fs -mkdir /user/oozie/oozie_scripts/
+hadoop fs -mkdir /user/oozie/oozie_scripts/lib/
+hadoop fs -put /usr/hdp/current/sqoop-client/lib/java-json.jar /user/oozie/oozie_scripts/lib/
+
+[root@sandbox ~]# oozie validate hdfs://sandbox.hortonworks.com:8020/Credit_Card_System_224/oozie/workflow.xml
+[root@sandbox ~]# oozie validate hdfs://sandbox.hortonworks.com:8020/Credit_Card_System_224/oozie/coordinator.xml
+
+# insert new rows into mysql tables
+[root@sandbox ~]# oozie job -oozie http://localhost:11000/oozie -config /root/Documents/case_study/oozie224/job.properties -run
+# insert new rows into mysql tables
+[root@sandbox ~]# oozie job -oozie http://localhost:11000/oozie -config /root/Documents/case_study/oozie224/job_coordinator.properties -run
+
+
+****
+REFERENCES
+https://community.hortonworks.com/questions/11373/sqoop-incremental-import-in-hive-i-get-error-messa.html#answer-11590
+
+googled: Failing Oozie Launcher, Main class [org.apache.oozie.action.hadoop.SqoopMain], main() threw exception, org/json/JSONObject java.lang.NoClassDefFoundError: org/json/JSONObject
+https://community.hortonworks.com/articles/82094/running-oozie-sqoop-action-fails-with-launcher-exc.html
+
+Solution:
+
+Ensure that 'java-json.jar' file exists in the following locations: /usr/hdp/current/sqoop-client/lib /usr/hdp/<version>/sqoop/lib
+
+hadoop fs -mkdir /user/oozie/oozie_scripts/
+hadoop fs -mkdir /user/oozie/oozie_scripts/lib/
+hadoop fs -put /usr/hdp/current/sqoop-client/lib/java-json.jar /user/oozie/oozie_scripts/lib/
+
+ change workflow.xml:
+
+<archive>/user/oozie/oozie_scripts/lib/java-json.jar#java-json.jar</archive>
+
+googled: oozie sqoop action archive tag
+https://stackoverflow.com/questions/26169186/issue-running-sqoop-action-using-oozie-on-a-hadoop-cluster
+http://ingest.tips/2014/11/27/how-to-oozie-sqoop-hive/
+
+put archive tag AFTER command/arg tag

@@ -1,0 +1,6 @@
+USE CDW_SAPP;
+
+LOAD DATA INPATH '/Credit_Card_System/branch/part-m-00000' INTO TABLE cdw_sapp_d_branch;
+LOAD DATA INPATH '/Credit_Card_System/customer/part-m-00000' INTO TABLE cdw_sapp_d_customer;
+LOAD DATA INPATH '/Credit_Card_System/credit_card/part-m-00000' INTO TABLE cdw_sapp_d_credit_card;
+LOAD DATA INPATH '/Credit_Card_System/time/part-m-00000' INTO TABLE cdw_sapp_d_time;

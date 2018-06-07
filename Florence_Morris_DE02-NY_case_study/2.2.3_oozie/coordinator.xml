@@ -1,0 +1,17 @@
+<!-- * Every weekday between 08:00 and 18:00 EST
+* Executes once every 20 minutes
+* Starts on June 5 2018 at 08:00 EST Ends on March 29th 2025 at 18:00 EST
+-->
+<coordinator-app xmlns = "uri:oozie:coordinator:0.2" name = "hcoord_data_from_external" frequency = "0,20,40 12-21 * * 2-6" start = "2018-06-05T12:00Z" end = "2025-03-29T22:00Z" timezone = "America/New_York">
+	 <controls>
+		 <timeout>1</timeout>
+		 <concurrency>1</concurrency>
+		 <execution>FIFO</execution>
+		 <throttle>1</throttle>
+	 </controls>
+	 <action>
+		 <workflow>
+		 	<app-path>${nameNode}/user/maria_dev/cdw_sapp/oozie/workflow.xml</app-path>
+		 </workflow>
+	 </action>
+</coordinator-app>

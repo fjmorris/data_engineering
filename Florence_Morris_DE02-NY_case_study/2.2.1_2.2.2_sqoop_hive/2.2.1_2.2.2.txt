@@ -1,0 +1,98 @@
+﻿2.2.1 Data Extraction and Transportation Module 
+2.2.1 Data Extraction and Transportation with Sqoop 
+Credit Card System 
+Req-2.2.1 Data Extraction and Transportation with Sqoop Functional Requirements Utilize Sqoop to extract the following data according to the specifications found in the mapping document:
+1. Branch data into CDW_SAPP_BRANCH
+2. Credit Card Data into CDW_SAPP_CREDITCARD
+3. Time data into CDW_SAPP_TIME
+4. Customer Data into CDW_SAPP_CUSTOMER 
+Notes:
+ Data Engineers will be required to transform the data based on requirements found in the Mapping Document prior to loading the data into Hadoop. 
+ TIMEID is a field that the Data Engineers should create based on the DAY, MONTH, and TIME fields located in the CUSTOMER table. Format should be YYYYMMDD. For instance, January 4th, 2017 would become 20170104 
+ Data Engineers should extract the above data to the /Credit_Card_System/ folder in the Hadoop Filesystem 
+
+
+[root@sandbox ~]# mysql -u root -p
+mysql> use CDW_SAPP;
+
+mysql> grant all privileges on cdw_sapp.* to ''@'localhost';
+
+mysql> show tables;
+
+CDW_SAPP_BRANCH
+CDW_SAPP_CREDITCARD
+CDW_SAPP_CUSTOMER  
+
+# https://www.oreilly.com/library/view/apache-sqoop-cookbook/9781449364618/ch04.html
+
+[root@sandbox ~]# hadoop fs -mkdir /Credit_Card_System
+
+[root@sandbox ~]# sqoop import --connect jdbc:mysql://localhost/CDW_SAPP --driver com.mysql.jdbc.Driver --query "SELECT BRANCH_CODE, BRANCH_NAME, BRANCH_STREET, BRANCH_CITY, BRANCH_STATE, BRANCH_ZIP, CONCAT('(',SUBSTRING(BRANCH_PHONE, 1, 3),')',SUBSTRING(BRANCH_PHONE, 4, 3),'-',SUBSTRING(BRANCH_PHONE, 7, 4) ) AS FORMATTED_PHONE, LAST_UPDATED FROM CDW_SAPP_BRANCH WHERE \$CONDITIONS" --m 1 --target-dir /Credit_Card_System/branch
+
+[root@sandbox ~]# sqoop import --connect jdbc:mysql://localhost/CDW_SAPP --driver com.mysql.jdbc.Driver --query "SELECT SSN, FIRST_NAME, lower(MIDDLE_NAME), LAST_NAME, CREDIT_CARD_NO, CONCAT(APT_NO,' ',STREET_NAME), CUST_CITY, CUST_STATE, CUST_COUNTRY, CUST_ZIP, CONCAT(SUBSTRING(CUST_PHONE, 1, 3),'-',SUBSTRING(CUST_PHONE, 4, 4) ) as FORMATTED_PHONE, CUST_EMAIL, LAST_UPDATED FROM CDW_SAPP_CUSTOMER WHERE \$CONDITIONS" --m 1 --target-dir /Credit_Card_System/customer
+
+[root@sandbox ~]# sqoop import --connect jdbc:mysql://localhost/CDW_SAPP --driver com.mysql.jdbc.Driver --query "SELECT TRANSACTION_ID, CREDIT_CARD_NO, DATE_FORMAT(CONCAT(CAST(YEAR AS CHAR(4)),'-',CAST(MONTH AS CHAR(2)),'-',CAST(DAY AS CHAR(2))),'%Y%m%d') AS TIMEID, CUST_SSN, BRANCH_CODE, TRANSACTION_TYPE, TRANSACTION_VALUE FROM CDW_SAPP_CREDITCARD WHERE \$CONDITIONS" --m 1 --target-dir /Credit_Card_System/credit_card
+
+[root@sandbox ~]# sqoop import --connect jdbc:mysql://localhost/CDW_SAPP --driver com.mysql.jdbc.Driver --query "SELECT DISTINCT DATE_FORMAT(CONCAT(CAST(YEAR AS CHAR(4)),'-',CAST(MONTH AS CHAR(2)),'-',CAST(DAY AS CHAR(2))),'%Y%m%d') AS TIMEID, DAY, MONTH, CASE MONTH WHEN 1 THEN 1 WHEN 2 THEN 1 WHEN 3 THEN 1 WHEN 4 THEN 2 WHEN 5 THEN 2 WHEN 6 THEN 2 WHEN 7 THEN 3 WHEN 8 THEN 3 WHEN 9 THEN 3 ELSE 4 END AS QUARTER, YEAR FROM CDW_SAPP_CREDITCARD WHERE \$CONDITIONS ORDER BY 1" --m 1 --target-dir /Credit_Card_System/time
+
+2.2.2 Data Loading with Hive
+Credit Card System Req-2.2.2 Data Loading with Hive
+Functional Requirements
+Utilize Hive to create tables in the Hadoop Filesystem and then load the data extracted via Sqoop into those tables.
+Data Engineers will be map to transform the data based on requirements found in the Mapping Document.
+
+[root@sandbox ~]# hive
+
+hive> 
+CREATE EXTERNAL TABLE CDW_SAPP_D_BRANCH (
+BRANCH_CODE DECIMAL(9,0),
+BRANCH_NAME VARCHAR(25),
+BRANCH_STREET VARCHAR(30),
+BRANCH_CITY VARCHAR(30),
+BRANCH_STATE VARCHAR(30),
+BRANCH_ZIP DECIMAL(7,0),
+BRANCH_PHONE VARCHAR(13),
+LAST_UPDATED TIMESTAMP
+) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '"' LINES TERMINATED BY '\n' LOCATION '/user/maria_dev/cdw_sapp/branch';
+
+LOAD DATA INPATH '/Credit_Card_System/branch/part-m-00000' INTO TABLE cdw_sapp_d_branch;
+
+CREATE EXTERNAL TABLE CDW_SAPP_D_CUSTOMER (
+CUST_SSN DECIMAL(9,0),
+CUST_F_NAME VARCHAR(40),
+CUST_M_NAME VARCHAR(40),
+CUST_L_NAME VARCHAR(40),
+CUST_CC_NO CHAR(16),
+CUST_STREET VARCHAR(38),
+CUST_CITY VARCHAR(30),
+CUST_STATE VARCHAR(30),
+CUST_COUNTRY VARCHAR(30),
+CUST_ZIP DECIMAL(7,0),
+CUST_PHONE VARCHAR(8),
+CUST_EMAIL VARCHAR(40),
+LAST_UPDATED TIMESTAMP
+) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '"' LINES TERMINATED BY '\n' LOCATION '/user/maria_dev/cdw_sapp/customer';
+
+LOAD DATA INPATH '/Credit_Card_System/customer/part-m-00000' INTO TABLE cdw_sapp_d_customer;
+
+CREATE EXTERNAL TABLE CDW_SAPP_D_CREDIT_CARD (
+TRANSACTION_ID DECIMAL(9,0),
+CUST_CC_NO CHAR(16),
+TIMEID VARCHAR(8),
+CUST_SSN DECIMAL(9,0),
+BRANCH_CODE DECIMAL(10,0),
+TRANSACTION_TYPE VARCHAR(30),
+TRANSACTION_VALUE DECIMAL(20,3)
+) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '"' LINES TERMINATED BY '\n' LOCATION '/user/maria_dev/cdw_sapp/credit_card';
+
+LOAD DATA INPATH '/Credit_Card_System/credit_card/part-m-00000' INTO TABLE cdw_sapp_d_credit_card;
+
+CREATE EXTERNAL TABLE CDW_SAPP_D_TIME (
+TIMEID VARCHAR(8),
+DAY DECIMAL(2,0),
+MONTH DECIMAL(2,0),
+QUARTER DECIMAL(1,0),
+YEAR DECIMAL(4,0)
+) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '"' LINES TERMINATED BY '\n' LOCATION '/user/maria_dev/cdw_sapp/time';
+
+LOAD DATA INPATH '/Credit_Card_System/time/part-m-00000' INTO TABLE cdw_sapp_d_time;
